@@ -1,0 +1,11 @@
+# Exclude virtual environments
+.venv/
+env/
+ENV/
+.flaskenv
+.env
+migrations/
+# Exclude Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
