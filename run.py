@@ -5,3 +5,5 @@ app = create_app()
 # print("bisa")
 if __name__ == '__main__':
     app.run(debug=True)
+
+print("x")
