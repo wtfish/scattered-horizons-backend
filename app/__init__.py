@@ -5,6 +5,7 @@ from app.models.user import db, User
 from app.routes.auth import auth_bp
 from app.config import Config
 from app.db import init_db
+from app.routes.index import index_bp
 
 def create_app():
     app = Flask(__name__)
@@ -14,7 +15,7 @@ def create_app():
     jwt = JWTManager(app)
     db.init_db(app)
     
-    
+    app.register_blueprint(index_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
     @app.route('/login', methods=['POST'])
