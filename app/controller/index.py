@@ -1,2 +1,2 @@
 def index():
-    return "ok"
+    return "Server Health check"
