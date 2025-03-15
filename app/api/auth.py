@@ -9,8 +9,6 @@ from datetime import datetime
 import pytz
 import os
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-
 def get_utc_timestamp():
     """Returns current UTC timestamp in ISO 8601 format."""
     return datetime.now(pytz.utc).isoformat()
@@ -24,7 +22,7 @@ def google_login():
     token = request.json.get("token")
 
     try:
-        id_info = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), os.getenv("GOOGLE_CLIENT_ID"))
         user = User.query.filter_by(email=id_info["email"]).first()
 
         if not user:
@@ -51,6 +49,61 @@ def google_login():
             "details": str(e),
             "timestamp": get_utc_timestamp()
         }), 401
+
+def google_auth_callback():
+    """Handle Google OAuth2 Callback (Popup Login)"""
+    code = request.args.get("code")
+
+    if not code:
+        return "<script>window.opener.postMessage({ status: 'error', message: 'No code provided' }, '*'); window.close();</script>"
+
+    # Exchange code for access token
+    token_url = "https://oauth2.googleapis.com/token"
+    token_data = {
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+        "code": code,
+        "grant_type": "authorization_code",
+        "redirect_uri": "https://alpha.api.terabyteai.com/auth/callback"
+    }
+    
+    token_response = requests.post(token_url, data=token_data)
+    token_info = token_response.json()
+
+    if "access_token" not in token_info:
+        return "<script>window.opener.postMessage({ status: 'error', message: 'Token exchange failed' }, '*'); window.close();</script>"
+
+    # Get user info from Google
+    user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+    headers = {"Authorization": f"Bearer {token_info['access_token']}"}
+    user_response = requests.get(user_info_url, headers=headers)
+    user_info = user_response.json()
+
+    # Check if user exists
+    user = User.query.filter_by(email=user_info["email"]).first()
+    if not user:
+        user = User(
+            email=user_info["email"],
+            name=user_info.get("name", ""),
+            google_id=user_info["id"]
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    # Create JWT session token
+    access_token = create_access_token(identity=user.id)
+
+    # Store JWT in HttpOnly Secure Cookie
+    response_script = f"""
+    <script>
+        document.cookie = "access_token={access_token}; path=/; Secure; HttpOnly; SameSite=Strict";
+        window.opener.postMessage({{ status: 'success', user: {{ name: "{user.name}", picture: "{user.profile_picture}" }} }}, "*");
+        window.close();
+    </script>
+    """
+
+    return response_script
+
 
 def register():
     """Registers a new user using email and password."""

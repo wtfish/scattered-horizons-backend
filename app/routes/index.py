@@ -4,5 +4,5 @@ from app.controller import index
 
 index_bp = Blueprint("index_bp", __name__)
 
-# Rute autentikasi
+# Rute index
 index_bp.route("/", methods=["GET"])(index.index)
