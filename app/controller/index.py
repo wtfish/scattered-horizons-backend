@@ -1,2 +1,6 @@
+from flask import render_template
+
+def test():
+    return render_template('test.html')
 def index():
-    return "Server Health check"
+    return "Auth Server is running"

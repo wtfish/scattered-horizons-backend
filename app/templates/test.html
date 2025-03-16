@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Login Test</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            checkLoginStatus();
+
+            window.addEventListener("message", function (event) {
+                if (event.origin !== "https://alpha.api.terabyteai.com") return;
+
+                if (event.data.status === "success") {
+                    document.getElementById("status").innerText = `Welcome, ${event.data.user.name}`;
+                    document.getElementById("loginButton").style.display = "none";
+                    document.getElementById("logoutButton").style.display = "block";
+                }
+            });
+        });
+
+        function googleLoginPopup() {
+            const authUrl = "https://accounts.google.com/o/oauth2/auth"
+                + "?client_id=38176584813-0taotrlmlv20pn18t3utje7g2e1j0d3f.apps.googleusercontent.com"
+                + "&redirect_uri=https%3A%2F%2Falpha.api.terabyteai.com%2Fauth%2Fgoogle%2Fcallback"
+                + "&response_type=code"
+                + "&scope=email%20profile";
+
+            window.open(authUrl, "googleLogin", "width=500,height=600");
+        }
+
+        function checkLoginStatus() {
+            fetch("https://alpha.api.terabyteai.com/auth/me", {
+                method: "GET",
+                credentials: "include"
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    document.getElementById("status").innerText = `Welcome, ${data.user.name}`;
+                    document.getElementById("loginButton").style.display = "none";
+                    document.getElementById("logoutButton").style.display = "block";
+                } else {
+                    document.getElementById("status").innerText = "Not logged in";
+                    document.getElementById("loginButton").style.display = "block";
+                    document.getElementById("logoutButton").style.display = "none";
+                }
+            })
+            .catch(() => {
+                document.getElementById("status").innerText = "Not logged in";
+            });
+        }
+
+        function logout() {
+            fetch("https://alpha.api.terabyteai.com/auth/logout", {
+                method: "POST",
+                credentials: "include"
+            })
+            .then(() => {
+                document.getElementById("status").innerText = "Logged out";
+                document.getElementById("loginButton").style.display = "block";
+                document.getElementById("logoutButton").style.display = "none";
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Google Login Test</h1>
+    <p id="status">Checking login status...</p>
+    <button id="loginButton" onclick="googleLoginPopup()">Login with Google</button>
+    <button id="logoutButton" onclick="logout()" style="display:none;">Logout</button>
+</body>
+</html>
