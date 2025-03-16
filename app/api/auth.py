@@ -8,6 +8,7 @@ from app.db import db
 from datetime import datetime
 import pytz
 import os
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 def get_utc_timestamp():
     """Returns current UTC timestamp in ISO 8601 format."""
@@ -16,6 +17,22 @@ def get_utc_timestamp():
 def generate_jwt(user):
     """Generates JWT token for authentication."""
     return create_access_token(identity={"user_id": user.id, "email": user.email, "name": user.name})
+
+@jwt_required()
+def get_current_user():
+    """Check if the user is logged in and return user info"""
+    user_id = get_jwt_identity()  # Get user ID from JWT
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
+    return jsonify({
+        "status": "success",
+        "user": {
+            "name": user.name
+        }
+    }), 200
 
 def google_login():
     """Authenticate user using Google OAuth2."""
